@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rohan Lall — Full Stack Developer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b0f;
+    --bg-alt:#0d1319;
+    --bg-raised:#111a21;
+    --text:#d7e6df;
+    --text-dim:#5f7a72;
+    --text-dimmer:#3c4f4a;
+    --green:#3dffa0;
+    --green-dim:#1f8f5c;
+    --cyan:#5fd4e8;
+    --amber:#ffb454;
+    --red:#ff5f6d;
+    --border:#1b2a27;
+    --mono:'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--mono);
+    overflow-x:hidden;
+    cursor:none;
+  }
+  @media (max-width:900px){ body{cursor:auto;} }
+  ::selection{background:var(--green);color:#000;}
+
+  /* scanline / crt texture */
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    pointer-events:none;
+    z-index:9999;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.10) 3px
+    );
+    opacity:.35;
+    mix-blend-mode:overlay;
+  }
+  body::after{
+    content:"";
+    position:fixed;inset:0;
+    pointer-events:none;
+    z-index:9998;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%);
+  }
+
+  /* custom cursor */
+  #cursor-dot{
+    position:fixed;top:0;left:0;width:8px;height:8px;border-radius:50%;
+    background:var(--green);box-shadow:0 0 12px var(--green), 0 0 24px var(--green);
+    pointer-events:none;z-index:10000;transform:translate(-50%,-50%);
+    transition:width .15s, height .15s, background .15s;
+  }
+  #cursor-ring{
+    position:fixed;top:0;left:0;width:28px;height:28px;border-radius:50%;
+    border:1px solid var(--green-dim);pointer-events:none;z-index:10000;
+    transform:translate(-50%,-50%);transition:width .2s,height .2s,border-color .2s, opacity .2s;
+  }
+  #packet-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+  a{color:inherit;text-decoration:none;}
+
+  nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 6vw;
+    background:rgba(7,11,15,.75);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo{font-weight:700;color:var(--green);letter-spacing:.5px;font-size:14px;}
+  .logo span{color:var(--text-dim);}
+  .navlinks{display:flex;gap:28px;font-size:13px;color:var(--text-dim);}
+  .navlinks a{position:relative;padding:4px 0;transition:color .2s;}
+  .navlinks a:hover{color:var(--green);}
+  .navlinks a::before{content:"";}
+  @media (max-width:700px){.navlinks{display:none;}}
+
+  section{position:relative;z-index:1;padding:120px 6vw 80px;max-width:1200px;margin:0 auto;}
+
+  /* HERO */
+  #hero{
+    min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+    padding-top:100px;
+  }
+  .prompt-line{color:var(--text-dim);font-size:13px;margin-bottom:6px;}
+  .prompt-line .path{color:var(--cyan);}
+  .prompt-line .cmd{color:var(--green);}
+  #typed-whoami{white-space:pre-wrap;}
+  .cursor-blink{display:inline-block;width:9px;height:1.1em;background:var(--green);vertical-align:text-bottom;animation:blink 1s steps(1) infinite;margin-left:2px;}
+  @keyframes blink{50%{opacity:0;}}
+
+  h1.hero-name{
+    font-size:clamp(2.4rem,7vw,5.2rem);
+    font-weight:800;line-height:1.02;letter-spacing:-1px;
+    margin:14px 0 6px;
+    color:var(--text);
+  }
+  h1.hero-name .hl{color:var(--green);text-shadow:0 0 24px rgba(61,255,160,.35);}
+  .hero-role{font-size:clamp(1rem,2.4vw,1.4rem);color:var(--cyan);margin-bottom:22px;font-weight:500;}
+  .hero-desc{max-width:560px;color:var(--text-dim);font-size:14.5px;line-height:1.8;margin-bottom:36px;}
+  .hero-cta{display:flex;gap:16px;flex-wrap:wrap;}
+  .btn{
+    font-family:var(--mono);font-size:13px;padding:13px 22px;border-radius:2px;
+    border:1px solid var(--green-dim);color:var(--green);
+    display:inline-flex;align-items:center;gap:8px;
+    transition:all .25s;position:relative;overflow:hidden;
+  }
+  .btn:hover{background:var(--green);color:#04140c;box-shadow:0 0 30px rgba(61,255,160,.4);transform:translateY(-2px);}
+  .btn.ghost{border-color:var(--border);color:var(--text-dim);}
+  .btn.ghost:hover{border-color:var(--cyan);color:var(--cyan);background:transparent;box-shadow:0 0 20px rgba(95,212,232,.2);}
+
+  .scroll-hint{position:absolute;bottom:36px;left:6vw;color:var(--text-dimmer);font-size:11px;display:flex;align-items:center;gap:8px;}
+  .scroll-hint .bar{width:1px;height:34px;background:linear-gradient(var(--green),transparent);animation:scrolldown 1.8s infinite;}
+  @keyframes scrolldown{0%{transform:scaleY(0);transform-origin:top;}50%{transform:scaleY(1);transform-origin:top;}51%{transform-origin:bottom;}100%{transform:scaleY(0);transform-origin:bottom;}}
+
+  /* SECTION HEADERS */
+  .sec-head{margin-bottom:48px;}
+  .sec-tag{color:var(--green);font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+  .sec-tag::before{content:"";width:24px;height:1px;background:var(--green);}
+  .sec-title{font-size:clamp(1.6rem,3.6vw,2.4rem);font-weight:800;letter-spacing:-.5px;}
+  .sec-title .dim{color:var(--text-dimmer);}
+
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);}
+  .reveal.in{opacity:1;transform:translateY(0);}
+
+  /* ABOUT */
+  #about .about-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:60px;}
+  @media (max-width:850px){#about .about-grid{grid-template-columns:1fr;}}
+  .about-text p{color:var(--text-dim);font-size:14.5px;line-height:1.9;margin-bottom:16px;}
+  .about-text strong{color:var(--text);font-weight:600;}
+  .stat-row{display:flex;gap:32px;margin-top:28px;flex-wrap:wrap;}
+  .stat{border-left:2px solid var(--green-dim);padding-left:14px;}
+  .stat b{display:block;font-size:1.6rem;color:var(--green);}
+  .stat span{font-size:11.5px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:1px;}
+
+  .skills-box{background:var(--bg-alt);border:1px solid var(--border);border-radius:4px;padding:22px 24px;}
+  .skills-box .fhead{color:var(--text-dimmer);font-size:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px dashed var(--border);}
+  .skill-group{margin-bottom:16px;}
+  .skill-group:last-child{margin-bottom:0;}
+  .skill-group .gname{color:var(--cyan);font-size:12px;margin-bottom:8px;}
+  .skill-group .gname::before{content:"▸ ";}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{
+    font-size:11.5px;padding:5px 10px;border:1px solid var(--border);border-radius:2px;
+    color:var(--text-dim);transition:all .25s;cursor:default;
+  }
+  .chip:hover{border-color:var(--green);color:var(--green);background:rgba(61,255,160,.06);transform:translateY(-2px);}
+
+  /* PROJECTS */
+  .proj-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;}
+  @media (max-width:850px){.proj-grid{grid-template-columns:1fr;}}
+  .proj-card{
+    background:var(--bg-alt);border:1px solid var(--border);border-radius:6px;
+    padding:28px;position:relative;overflow:hidden;transform-style:preserve-3d;
+    transition:border-color .3s, box-shadow .3s;
+  }
+  .proj-card:hover{border-color:var(--green-dim);box-shadow:0 20px 50px -20px rgba(61,255,160,.25);}
+  .proj-card::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(500px circle at var(--mx,50%) var(--my,50%), rgba(61,255,160,.08), transparent 60%);
+    opacity:0;transition:opacity .3s;pointer-events:none;
+  }
+  .proj-card:hover::before{opacity:1;}
+  .proj-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+  .proj-index{font-size:11px;color:var(--text-dimmer);}
+  .proj-name{font-size:1.25rem;font-weight:700;margin-bottom:10px;color:var(--text);}
+  .proj-desc{color:var(--text-dim);font-size:13.5px;line-height:1.8;margin-bottom:18px;}
+  .proj-stack{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .tag{font-size:10.5px;color:var(--amber);border:1px solid rgba(255,180,84,.3);padding:3px 8px;border-radius:12px;}
+  .proj-feats{list-style:none;font-size:12.5px;color:var(--text-dim);margin-top:14px;display:flex;flex-direction:column;gap:6px;}
+  .proj-feats li::before{content:"$ ";color:var(--green);}
+
+  /* EXPERIENCE - git log style */
+  .gitlog{border-left:2px solid var(--border);margin-left:8px;}
+  .gitnode{position:relative;padding:0 0 42px 32px;}
+  .gitnode:last-child{padding-bottom:0;}
+  .gitnode::before{
+    content:"";position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;
+    background:var(--bg);border:2px solid var(--green);box-shadow:0 0 12px rgba(61,255,160,.5);
+  }
+  .commit-hash{color:var(--amber);font-size:12px;margin-bottom:4px;}
+  .commit-title{font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:4px;}
+  .commit-meta{font-size:11.5px;color:var(--text-dimmer);margin-bottom:12px;}
+  .commit-body{color:var(--text-dim);font-size:13.5px;line-height:1.85;}
+  .commit-body li{margin-left:18px;margin-bottom:6px;}
+
+  /* CERTS */
+  .cert-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;}
+  .cert-card{
+    background:var(--bg-alt);border:1px solid var(--border);border-radius:4px;padding:20px;
+    transition:transform .3s, border-color .3s;
+  }
+  .cert-card:hover{transform:translateY(-4px);border-color:var(--cyan);}
+  .cert-icon{color:var(--green);font-size:18px;margin-bottom:10px;}
+  .cert-name{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.5;}
+  .cert-org{font-size:11.5px;color:var(--text-dimmer);}
+
+  /* CONTACT */
+  #contact{padding-bottom:60px;}
+  .terminal-window{
+    background:var(--bg-alt);border:1px solid var(--border);border-radius:6px;overflow:hidden;
+    max-width:640px;margin:0 auto;box-shadow:0 30px 80px -30px rgba(0,0,0,.6);
+  }
+  .term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--bg-raised);border-bottom:1px solid var(--border);}
+  .term-dot{width:10px;height:10px;border-radius:50%;}
+  .term-bar span:nth-child(1){background:#ff5f56;}
+  .term-bar span:nth-child(2){background:#ffbd2e;}
+  .term-bar span:nth-child(3){background:#27c93f;}
+  .term-title{margin-left:auto;font-size:11px;color:var(--text-dimmer);}
+  .term-body{padding:28px;}
+  .field{margin-bottom:20px;}
+  .field label{display:block;font-size:12px;color:var(--green);margin-bottom:8px;}
+  .field label::before{content:"> ";color:var(--text-dimmer);}
+  .field input,.field textarea{
+    width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+    font-family:var(--mono);font-size:13.5px;padding:11px 12px;border-radius:2px;
+    outline:none;transition:border-color .25s, box-shadow .25s;resize:vertical;
+  }
+  .field input:focus,.field textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(61,255,160,.1);}
+  .term-body .btn{width:100%;justify-content:center;margin-top:6px;}
+  .contact-links{display:flex;justify-content:center;gap:26px;margin-top:36px;font-size:12.5px;color:var(--text-dim);}
+  .contact-links a{transition:color .2s;}
+  .contact-links a:hover{color:var(--green);}
+
+  footer{text-align:center;padding:30px 6vw;color:var(--text-dimmer);font-size:11.5px;border-top:1px solid var(--border);position:relative;z-index:1;}
+
+  /* DB BROWSER */
+  #dbbrowser{padding-bottom:60px;}
+  .dbb-window{
+    max-width:900px;margin:0 auto;background:var(--bg-alt);border:1px solid var(--border);
+    border-radius:6px;overflow:hidden;box-shadow:0 30px 80px -30px rgba(0,0,0,.6);
+  }
+  .dbb-titlebar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--bg-raised);border-bottom:1px solid var(--border);}
+  .dbb-titlebar span.name{margin-left:8px;font-size:12px;color:var(--text-dim);}
+  .dbb-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg-alt);}
+  .dbb-tab{padding:10px 18px;font-size:12px;color:var(--text-dimmer);cursor:pointer;border-right:1px solid var(--border);transition:color .2s,background .2s;}
+  .dbb-tab.active{color:var(--green);background:var(--bg-raised);}
+  .dbb-body{padding:22px;}
+
+  .dbb-gate{text-align:center;padding:20px 10px;}
+  .dbb-gate p{color:var(--text-dim);font-size:13px;margin-bottom:16px;line-height:1.8;}
+  .dbb-gate input{
+    width:220px;background:var(--bg);border:1px solid var(--border);color:var(--text);
+    font-family:var(--mono);font-size:13px;padding:10px 12px;border-radius:2px;outline:none;
+    text-align:center;margin-bottom:14px;
+  }
+  .dbb-gate input:focus{border-color:var(--green);}
+  .dbb-error{color:var(--red);font-size:12px;margin-top:-6px;margin-bottom:12px;min-height:14px;}
+
+  .dbb-schema{font-size:12.5px;color:var(--text-dim);line-height:2;margin-bottom:4px;}
+  .dbb-schema .tbl{color:var(--cyan);}
+  .dbb-schema .col{color:var(--amber);}
+
+  .dbb-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .dbb-count{font-size:11.5px;color:var(--text-dimmer);}
+  .dbb-refresh{font-size:11.5px;color:var(--green);border:1px solid var(--green-dim);padding:6px 12px;border-radius:2px;cursor:pointer;background:transparent;font-family:var(--mono);}
+  .dbb-refresh:hover{background:rgba(61,255,160,.08);}
+
+  .dbb-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:4px;}
+  table.dbb-table{width:100%;border-collapse:collapse;font-size:12px;}
+  table.dbb-table th{text-align:left;background:var(--bg-raised);color:var(--text-dimmer);padding:9px 12px;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:600;}
+  table.dbb-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text-dim);vertical-align:top;}
+  table.dbb-table tr:last-child td{border-bottom:none;}
+  table.dbb-table tr:hover td{background:rgba(61,255,160,.04);}
+  table.dbb-table td.id{color:var(--text-dimmer);}
+  table.dbb-table td.msg{max-width:280px;white-space:normal;}
+  .dbb-del{color:var(--red);cursor:pointer;font-size:11px;border:1px solid rgba(255,95,109,.35);padding:3px 8px;border-radius:2px;background:transparent;font-family:var(--mono);}
+  .dbb-del:hover{background:rgba(255,95,109,.1);}
+  .dbb-empty{color:var(--text-dimmer);font-size:12.5px;text-align:center;padding:24px;}
+
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--green-dim);}
+</style>
+</head>
+<body>
+
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+<canvas id="packet-canvas"></canvas>
+
+<nav>
+  <div class="logo">rohan<span>@</span>lall<span>:~$</span></div>
+  <div class="navlinks">
+    <a href="#about">about</a>
+    <a href="#projects">projects</a>
+    <a href="#experience">experience</a>
+    <a href="#certs">certs</a>
+    <a href="#contact">contact</a>
+    <a href="#dbbrowser">database</a>
+  </div>
+</nav>
+
+<section id="hero">
+  <div class="prompt-line"><span class="path">visitor@portfolio</span>:<span class="cmd">~$</span> whoami</div>
+  <h1 class="hero-name" id="typed-name"></h1>
+  <div class="hero-role">Full Stack Developer · Networking &amp; Cybersecurity Enthusiast</div>
+  <p class="hero-desc">
+    BCA graduate from Bangalore (CGPA 8.39) building across the stack — React/Node on the front,
+    MongoDB and MySQL underneath, with a network engineer's instinct for how it all actually
+    talks to each other. Currently shipping full-stack projects and open to Full Stack /
+    Software Developer roles.
+  </p>
+  <div class="hero-cta">
+    <a href="#projects" class="btn">./view_projects.sh</a>
+    <a href="#contact" class="btn ghost">initiate_contact()</a>
+  </div>
+  <div class="scroll-hint"><div class="bar"></div>scroll</div>
+</section>
+
+<section id="about">
+  <div class="sec-head reveal">
+    <div class="sec-tag">01 · about</div>
+    <div class="sec-title">cat <span class="dim">about.md</span></div>
+  </div>
+  <div class="about-grid">
+    <div class="about-text reveal">
+      <p>I'm <strong>Rohan Lall</strong>, a BCA graduate who got into development through the
+      side door of <strong>networking and hardware</strong> — I can trace a packet through the
+      OSI model as comfortably as I can trace a bug through a React component tree.</p>
+      <p>That background shows up in how I build: I care about what's actually happening under
+      the UI — the requests, the database, the auth token bouncing between client and server —
+      not just how a page looks. My recent internship had me building real Oracle APEX
+      applications end to end: UI, SQL, and the bug fixes in between.</p>
+      <p>Outside of shipped work, I keep a running list of <strong>networking &amp; security
+      concepts</strong> I'm teaching to others through my own tutorial site — turns out
+      explaining DNS resolution to strangers is a great way to make sure you actually understand it.</p>
+      <div class="stat-row">
+        <div class="stat"><b>8.39</b><span>BCA CGPA</span></div>
+        <div class="stat"><b>2+</b><span>Full-Stack Projects</span></div>
+        <div class="stat"><b>4</b><span>Certifications</span></div>
+      </div>
+    </div>
+    <div class="skills-box reveal">
+      <div class="fhead">$ ls -la ./skills</div>
+      <div class="skill-group">
+        <div class="gname">frontend</div>
+        <div class="chips">
+          <span class="chip">HTML</span><span class="chip">CSS</span><span class="chip">SASS</span>
+          <span class="chip">JavaScript</span><span class="chip">TypeScript</span><span class="chip">React.js</span>
+        </div>
+      </div>
+      <div class="skill-group">
+        <div class="gname">backend</div>
+        <div class="chips">
+          <span class="chip">Node.js</span><span class="chip">Express.js</span><span class="chip">REST APIs</span>
+          <span class="chip">MongoDB</span><span class="chip">MySQL</span><span class="chip">Firebase</span>
+        </div>
+      </div>
+      <div class="skill-group">
+        <div class="gname">languages</div>
+        <div class="chips">
+          <span class="chip">C</span><span class="chip">C++</span><span class="chip">Java</span><span class="chip">Python</span>
+        </div>
+      </div>
+      <div class="skill-group">
+        <div class="gname">core &amp; tools</div>
+        <div class="chips">
+          <span class="chip">DSA</span><span class="chip">OOP</span><span class="chip">DBMS</span>
+          <span class="chip">Networking</span><span class="chip">Git</span><span class="chip">GitHub</span><span class="chip">Oracle APEX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="projects">
+  <div class="sec-head reveal">
+    <div class="sec-tag">02 · projects</div>
+    <div class="sec-title">ls <span class="dim">~/projects</span></div>
+  </div>
+  <div class="proj-grid">
+    <div class="proj-card reveal">
+      <div class="proj-top">
+        <div class="proj-name">Quick Fix Hub</div>
+        <div class="proj-index">01</div>
+      </div>
+      <div class="proj-desc">A service management &amp; issue-tracking system built on Oracle APEX —
+      users register, log issues, and track resolution through a token-based flow, with a full
+      admin dashboard behind it.</div>
+      <div class="proj-stack">
+        <span class="tag">Oracle APEX</span><span class="tag">Oracle SQL</span>
+        <span class="tag">JavaScript</span><span class="tag">HTML/CSS</span>
+      </div>
+      <ul class="proj-feats">
+        <li>User registration + token generation flow</li>
+        <li>Admin dashboard for issue oversight</li>
+        <li>SQL-backed data layer with custom queries</li>
+      </ul>
+    </div>
+    <div class="proj-card reveal">
+      <div class="proj-top">
+        <div class="proj-name">Networking Tutorial Website</div>
+        <div class="proj-index">02</div>
+      </div>
+      <div class="proj-desc">A responsive teaching platform covering the OSI model, TCP/IP,
+      IP addressing, routing &amp; switching, DNS, DHCP, and network security — with its own
+      login/signup and a local database backing it.</div>
+      <div class="proj-stack">
+        <span class="tag">React.js</span><span class="tag">Node.js</span>
+        <span class="tag">Express.js</span><span class="tag">MongoDB</span>
+      </div>
+      <ul class="proj-feats">
+        <li>Chapter-by-chapter networking curriculum</li>
+        <li>Auth-gated learning content</li>
+        <li>Fully responsive, built module by module</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="experience">
+  <div class="sec-head reveal">
+    <div class="sec-tag">03 · experience</div>
+    <div class="sec-title">git log <span class="dim">--oneline --graph</span></div>
+  </div>
+  <div class="gitlog">
+    <div class="gitnode reveal">
+      <div class="commit-hash">commit 7f3a91c</div>
+      <div class="commit-title">Oracle APEX Intern — Nerds and Geeks</div>
+      <div class="commit-meta">December 2025 – February 2026</div>
+      <div class="commit-body">
+        <li>Developed and maintained web applications using Oracle APEX and MySQL</li>
+        <li>Designed UI screens and wrote SQL queries for core app logic</li>
+        <li>Resolved bugs and documented solutions for the team</li>
+        <li>Collaborated closely with the development team throughout</li>
+      </div>
+    </div>
+    <div class="gitnode reveal">
+      <div class="commit-hash">commit 2b6cd10</div>
+      <div class="commit-title">BCA — Bachelor of Computer Applications</div>
+      <div class="commit-meta">CGPA 8.39</div>
+      <div class="commit-body">
+        <li>Coursework spanning DSA, OOP, DBMS, Operating Systems, and Networking</li>
+        <li>Built foundation in AI/ML basics alongside core CS theory</li>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="certs">
+  <div class="sec-head reveal">
+    <div class="sec-tag">04 · certifications</div>
+    <div class="sec-title">cat <span class="dim">certificates.log</span></div>
+  </div>
+  <div class="cert-grid">
+    <div class="cert-card reveal">
+      <div class="cert-icon">◆</div>
+      <div class="cert-name">Software Development Processes and Methodologies</div>
+      <div class="cert-org">University of Minnesota</div>
+    </div>
+    <div class="cert-card reveal">
+      <div class="cert-icon">◆</div>
+      <div class="cert-name">Python Functions, Files, and Dictionaries</div>
+      <div class="cert-org">University of Michigan</div>
+    </div>
+    <div class="cert-card reveal">
+      <div class="cert-icon">◆</div>
+      <div class="cert-name">Web Application Development with JavaScript and MongoDB</div>
+      <div class="cert-org">University of London</div>
+    </div>
+    <div class="cert-card reveal">
+      <div class="cert-icon">◆</div>
+      <div class="cert-name">Using Python to Interact with the Operating System</div>
+      <div class="cert-org">Google</div>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="sec-head reveal" style="text-align:center;">
+    <div class="sec-tag" style="justify-content:center;">05 · contact</div>
+    <div class="sec-title">./initiate_contact.sh</div>
+  </div>
+  <div class="terminal-window reveal">
+    <div class="term-bar">
+      <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+      <span class="term-title">contact@rohan-lall</span>
+    </div>
+    <div class="term-body">
+      <form id="contact-form">
+        <div class="field">
+          <label for="name">name</label>
+          <input id="name" type="text" placeholder="Jane Doe" required>
+        </div>
+        <div class="field">
+          <label for="email">email</label>
+          <input id="email" type="email" placeholder="jane@example.com" required>
+        </div>
+        <div class="field">
+          <label for="message">message</label>
+          <textarea id="message" rows="4" placeholder="Let's build something..." required></textarea>
+        </div>
+        <button type="submit" class="btn">send_message() →</button>
+      </form>
+    </div>
+  </div>
+  <div class="contact-links">
+    <a href="mailto:lallrohan52@gmail.com">lallrohan52@gmail.com</a>
+    <a href="https://github.com/cybernexa" target="_blank" rel="noopener">github/cybernexa</a>
+    <a href="https://www.linkedin.com/in/rohan-lall" target="_blank" rel="noopener">linkedin/rohan-lall</a>
+  </div>
+</section>
+
+<section id="dbbrowser">
+  <div class="sec-head reveal" style="text-align:center;">
+    <div class="sec-tag" style="justify-content:center;">06 · db browser</div>
+    <div class="sec-title">SELECT * FROM <span class="dim">contacts</span></div>
+  </div>
+  <div class="dbb-window reveal">
+    <div class="dbb-titlebar">
+      <span class="term-dot" style="background:#ff5f56;"></span>
+      <span class="term-dot" style="background:#ffbd2e;"></span>
+      <span class="term-dot" style="background:#27c93f;"></span>
+      <span class="name">DB Browser — portfolio.contacts</span>
+    </div>
+    <div class="dbb-tabs">
+      <div class="dbb-tab active">Database Structure</div>
+      <div class="dbb-tab active" style="border-left:1px solid var(--border);">Browse Data</div>
+    </div>
+    <div class="dbb-body">
+      <div class="dbb-schema">
+        <span class="tbl">table contacts</span> (
+        <span class="col">_id</span> ObjectId,
+        <span class="col">name</span> String,
+        <span class="col">email</span> String,
+        <span class="col">message</span> String,
+        <span class="col">createdAt</span> Date )
+      </div>
+
+      <div id="dbb-gate" class="dbb-gate">
+        <p>Admin key required to browse live submissions.</p>
+        <div><input id="dbb-key" type="password" placeholder="admin key" autocomplete="off"></div>
+        <div class="dbb-error" id="dbb-error"></div>
+        <button class="btn" id="dbb-unlock">connect() →</button>
+      </div>
+
+      <div id="dbb-data" style="display:none;">
+        <div class="dbb-toolbar">
+          <span class="dbb-count" id="dbb-count">0 rows</span>
+          <button class="dbb-refresh" id="dbb-refresh">↻ refresh</button>
+        </div>
+        <div class="dbb-table-wrap">
+          <table class="dbb-table">
+            <thead>
+              <tr><th>id</th><th>name</th><th>email</th><th>message</th><th>created_at</th><th></th></tr>
+            </thead>
+            <tbody id="dbb-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>© 2026 Rohan Lall — built with HTML, CSS, JS &amp; a little too much cat -v.</footer>
+
+<script>
+// ---------- Custom cursor ----------
+const dot = document.getElementById('cursor-dot');
+const ring = document.getElementById('cursor-ring');
+let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+window.addEventListener('mousemove', e=>{
+  mx=e.clientX; my=e.clientY;
+  dot.style.left=mx+'px'; dot.style.top=my+'px';
+});
+(function loop(){
+  rx += (mx-rx)*0.15; ry += (my-ry)*0.15;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(loop);
+})();
+document.querySelectorAll('a,button,.chip,.proj-card,input,textarea').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ring.style.width='46px';ring.style.height='46px';ring.style.borderColor='var(--green)';dot.style.width='4px';dot.style.height='4px';});
+  el.addEventListener('mouseleave',()=>{ring.style.width='28px';ring.style.height='28px';ring.style.borderColor='var(--green-dim)';dot.style.width='8px';dot.style.height='8px';});
+});
+
+// ---------- Typed "whoami" hero ----------
+const nameTarget = document.getElementById('typed-name');
+const fullText = "Rohan Lall";
+let i=0;
+function typeName(){
+  if(i<=fullText.length){
+    nameTarget.innerHTML = fullText.slice(0,i).replace('Rohan','<span class="hl">Rohan</span>') + '<span class="cursor-blink"></span>';
+    i++;
+    setTimeout(typeName, 70);
+  }
+}
+typeName();
+
+// ---------- Scroll reveal ----------
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target);} });
+},{threshold:0.15});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+// ---------- 3D tilt on project cards ----------
+document.querySelectorAll('.proj-card').forEach(card=>{
+  card.addEventListener('mousemove', e=>{
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left)/r.width;
+    const py = (e.clientY - r.top)/r.height;
+    const rotX = (py-0.5)*-8;
+    const rotY = (px-0.5)*8;
+    card.style.transform = `perspective(700px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-4px)`;
+    card.style.setProperty('--mx', (px*100)+'%');
+    card.style.setProperty('--my', (py*100)+'%');
+  });
+  card.addEventListener('mouseleave', ()=>{ card.style.transform='perspective(700px) rotateX(0) rotateY(0)'; });
+});
+
+// ---------- Network packet canvas background ----------
+const canvas = document.getElementById('packet-canvas');
+const ctx = canvas.getContext('2d');
+let W,H,nodes=[];
+function resize(){
+  W = canvas.width = innerWidth;
+  H = canvas.height = document.getElementById('hero').offsetHeight;
+  canvas.style.height = H+'px';
+}
+function initNodes(){
+  const count = Math.min(46, Math.floor((W*H)/28000));
+  nodes = Array.from({length:count}, ()=>({
+    x: Math.random()*W, y: Math.random()*H,
+    vx: (Math.random()-0.5)*0.35, vy:(Math.random()-0.5)*0.35,
+    r: Math.random()*1.6+1
+  }));
+}
+resize(); initNodes();
+window.addEventListener('resize', ()=>{resize(); initNodes();});
+
+let mouseX=-9999, mouseY=-9999;
+document.getElementById('hero').addEventListener('mousemove', e=>{
+  const r = canvas.getBoundingClientRect();
+  mouseX = e.clientX - r.left; mouseY = e.clientY - r.top;
+});
+document.getElementById('hero').addEventListener('mouseleave', ()=>{mouseX=-9999;mouseY=-9999;});
+
+function drawNet(){
+  ctx.clearRect(0,0,W,H);
+  for(const n of nodes){
+    n.x+=n.vx; n.y+=n.vy;
+    if(n.x<0||n.x>W) n.vx*=-1;
+    if(n.y<0||n.y>H) n.vy*=-1;
+  }
+  for(let a=0;a<nodes.length;a++){
+    for(let b=a+1;b<nodes.length;b++){
+      const dx=nodes[a].x-nodes[b].x, dy=nodes[a].y-nodes[b].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<140){
+        ctx.strokeStyle = `rgba(61,255,160,${(1-d/140)*0.18})`;
+        ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(nodes[a].x,nodes[a].y); ctx.lineTo(nodes[b].x,nodes[b].y); ctx.stroke();
+      }
+    }
+  }
+  // mouse connections
+  for(const n of nodes){
+    const dx=n.x-mouseX, dy=n.y-mouseY;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<170){
+      ctx.strokeStyle = `rgba(95,212,232,${(1-d/170)*0.5})`;
+      ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(n.x,n.y); ctx.lineTo(mouseX,mouseY); ctx.stroke();
+    }
+  }
+  for(const n of nodes){
+    ctx.fillStyle='rgba(61,255,160,0.55)';
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fill();
+  }
+  requestAnimationFrame(drawNet);
+}
+drawNet();
+
+// ---------- contact form → real backend ----------
+document.getElementById('contact-form').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const btn = this.querySelector('button');
+  const original = btn.textContent;
+  const payload = {
+    name: document.getElementById('name').value,
+    email: document.getElementById('email').value,
+    message: document.getElementById('message').value,
+  };
+  btn.textContent = 'sending...'; btn.disabled = true;
+  try{
+    const res = await fetch('/api/contacts', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>({error:'Something went wrong'}));
+      throw new Error(err.error || 'Something went wrong');
+    }
+    btn.textContent = 'message_sent() ✓';
+    btn.style.background='var(--green)'; btn.style.color='#04140c';
+    this.reset();
+  }catch(err){
+    btn.textContent = 'failed — try again';
+    btn.style.background='var(--red)'; btn.style.color='#1a0505';
+  }finally{
+    setTimeout(()=>{ btn.textContent = original; btn.style.background=''; btn.style.color=''; btn.disabled=false; }, 2400);
+  }
+});
+
+// ---------- DB Browser panel ----------
+const dbbGate = document.getElementById('dbb-gate');
+const dbbData = document.getElementById('dbb-data');
+const dbbKeyInput = document.getElementById('dbb-key');
+const dbbError = document.getElementById('dbb-error');
+let adminKey = '';
+
+async function loadContacts(){
+  dbbError.textContent = '';
+  try{
+    const res = await fetch('/api/contacts', { headers: { 'x-admin-key': adminKey } });
+    if(res.status === 401){
+      dbbError.textContent = 'Invalid admin key.';
+      return;
+    }
+    if(!res.ok) throw new Error('Failed to load');
+    const rows = await res.json();
+    renderRows(rows);
+    dbbGate.style.display = 'none';
+    dbbData.style.display = 'block';
+  }catch(err){
+    dbbError.textContent = 'Could not reach the database.';
+  }
+}
+
+function renderRows(rows){
+  const tbody = document.getElementById('dbb-rows');
+  document.getElementById('dbb-count').textContent = rows.length + (rows.length===1 ? ' row' : ' rows');
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="dbb-empty">-- no rows in contacts --</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td class="id">${(r._id||'').toString().slice(-6)}</td>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.email)}</td>
+      <td class="msg">${escapeHtml(r.message)}</td>
+      <td>${new Date(r.createdAt).toLocaleString()}</td>
+      <td><button class="dbb-del" data-id="${r._id}">delete</button></td>
+    </tr>
+  `).join('');
+  tbody.querySelectorAll('.dbb-del').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      await fetch('/api/contacts/'+b.dataset.id, { method:'DELETE', headers:{ 'x-admin-key': adminKey } });
+      loadContacts();
+    });
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str == null ? '' : str;
+  return d.innerHTML;
+}
+
+document.getElementById('dbb-unlock').addEventListener('click', ()=>{
+  adminKey = dbbKeyInput.value;
+  loadContacts();
+});
+dbbKeyInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('dbb-unlock').click(); } });
+document.getElementById('dbb-refresh').addEventListener('click', loadContacts);
+</script>
+</body>
+</html>
