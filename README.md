@@ -11,7 +11,7 @@ A modern, responsive developer portfolio built to showcase my projects, technica
 - Admin dashboard to manage contact messages
 - Fast and optimized performance
 
-## Tech Stack
+## Tech Stack 
 
 - React
 - JavaScript
